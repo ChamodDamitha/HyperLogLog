@@ -4,7 +4,7 @@
 public class Main {
     public static void main(String[] args) {
 
-        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.1);
+        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.01);
 
 //        byte[] bytes = integerHyperLogLog.getHashValue(12);
 //
@@ -12,6 +12,10 @@ public class Main {
 
 //        System.out.print("Accuracy :" +  integerHyperLogLog.getAccuracy());
 
-        integerHyperLogLog.addItem(23);
+        for(int i = 0; i < 100; i++){
+            integerHyperLogLog.addItem(i);
+        }
+
+        System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
     }
 }

@@ -25,13 +25,13 @@ public class HyperLogLog<E> {
 
 //      accuracy = 1.04 / sqrt(noOfBuckets) = > noOfBuckets = (1.04 / accuracy) ^ 2
         noOfBuckets = (int)Math.ceil(Math.pow(1.04 / accuracy, 2));
-        System.out.println("array size I : " + noOfBuckets); //TODO : added for testing
+//        System.out.println("array size I : " + noOfBuckets); //TODO : added for testing
 
         lengthOfBucketId = (int)Math.ceil(Math.log(noOfBuckets) / Math.log(2));
-        System.out.println("bucket size : " + lengthOfBucketId); //TODO : added for testing
+//        System.out.println("bucket size : " + lengthOfBucketId); //TODO : added for testing
 
         noOfBuckets = (1 << lengthOfBucketId);
-        System.out.println("array size II : " + noOfBuckets); //TODO : added for testing
+//        System.out.println("array size II : " + noOfBuckets); //TODO : added for testing
 
         countArray = new int[noOfBuckets];
 
@@ -82,7 +82,7 @@ public class HyperLogLog<E> {
 //      if the estimate E is less than 2.5 * 32 and there are buckets with max-leading-zero count of zero,
 //      then instead return −32⋅log(V/32), where V is the number of buckets with max-leading-zero count = 0.
         if(estimatedCardinality < 2.5 * noOfBuckets && noOfZeroBuckets > 0){       //threshold of 2.5x comes from the recommended load factor for Linear Counting
-            return (int)Math.ceil(-noOfBuckets * Math.log(noOfZeroBuckets / noOfBuckets));
+            return (int)Math.ceil(-noOfBuckets * Math.log((double) noOfZeroBuckets / noOfBuckets));
         }
 //       if E > 2 ^ (32) / 30 : return −2 ^ (32) * log(1 − E / 2 ^ (32))
         else if(estimatedCardinality > ((1 << 32) / 30.0)){
@@ -101,18 +101,18 @@ public class HyperLogLog<E> {
      */
     public void addItem(E item){
         int hash = getHashValue(item);
-        System.out.println("hash : " + Integer.toBinaryString(hash)); //TODO : added for testing
+//        System.out.println("hash : " + Integer.toBinaryString(hash)); //TODO : added for testing
 
 //      Shift all the bits to right till only the bucket ID is left
         int bucketId = hash >>> (Integer.SIZE - lengthOfBucketId);
-        System.out.println("bucketID : " + Integer.toBinaryString(bucketId)); //TODO : added for testing
+//        System.out.println("bucketID : " + Integer.toBinaryString(bucketId)); //TODO : added for testing
 
 //      Shift all the bits to left till the bucket id is removed
         int remainingValue = hash << lengthOfBucketId;
-        System.out.println("Remaining value : " + Integer.toBinaryString(remainingValue)); //TODO : added for testing
+//        System.out.println("Remaining value : " + Integer.toBinaryString(remainingValue)); //TODO : added for testing
 
         int noOfLeadingZeros = Integer.numberOfLeadingZeros(remainingValue);
-        System.out.println("no of leading zeros : " + noOfLeadingZeros); //TODO : added for testing
+//        System.out.println("no of leading zeros : " + noOfLeadingZeros); //TODO : added for testing
 
         updateBucket(bucketId, noOfLeadingZeros);
     }
