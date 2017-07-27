@@ -12,6 +12,6 @@ public class Main {
 
 //        System.out.print("Accuracy :" +  integerHyperLogLog.getAccuracy());
 
-        integerHyperLogLog.addItem(21321);
+        integerHyperLogLog.addItem(23);
     }
 }
