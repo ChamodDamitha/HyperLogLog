@@ -10,7 +10,8 @@ public class Main {
 //
 //        int i = bytes[0] & 0xff;
 
-        System.out.print("Accuracy :" +  integerHyperLogLog.getAccuracy());
+//        System.out.print("Accuracy :" +  integerHyperLogLog.getAccuracy());
 
+        integerHyperLogLog.addItem(21321);
     }
 }

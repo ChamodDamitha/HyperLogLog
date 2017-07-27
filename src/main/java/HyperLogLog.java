@@ -7,8 +7,8 @@ import java.security.NoSuchAlgorithmException;
 public class HyperLogLog<E> {
 
     private double accuracy;
-    private int arraySize;
-    private int bucketSize;
+    private int noOfBuckets;
+    private int lengthOfBucketId;
     private int[] countArray;
 
     private final double ESTIMATION_FACTOR = 0.5;
@@ -23,17 +23,17 @@ public class HyperLogLog<E> {
     public HyperLogLog(double accuracy) {
         this.accuracy = accuracy;
 
-//      accuracy = 1.04 / sqrt(arraySize) = > arraySize = (1.04 / accuracy) ^ 2
-        arraySize = (int)Math.ceil(Math.pow(1.04 / accuracy, 2));
-        System.out.println("array size I : " + arraySize); //TODO : added for testing
+//      accuracy = 1.04 / sqrt(noOfBuckets) = > noOfBuckets = (1.04 / accuracy) ^ 2
+        noOfBuckets = (int)Math.ceil(Math.pow(1.04 / accuracy, 2));
+        System.out.println("array size I : " + noOfBuckets); //TODO : added for testing
 
-        bucketSize = (int)Math.ceil(Math.log(arraySize) / Math.log(2));
-        System.out.println("bucket size : " + bucketSize); //TODO : added for testing
+        lengthOfBucketId = (int)Math.ceil(Math.log(noOfBuckets) / Math.log(2));
+        System.out.println("bucket size : " + lengthOfBucketId); //TODO : added for testing
 
-        arraySize = (1 << bucketSize);
-        System.out.println("array size II : " + arraySize); //TODO : added for testing
+        noOfBuckets = (1 << lengthOfBucketId);
+        System.out.println("array size II : " + noOfBuckets); //TODO : added for testing
 
-        countArray = new int[arraySize];
+        countArray = new int[noOfBuckets];
 
 //        setting MD5 digest function to generate hashes
         try {
@@ -49,7 +49,7 @@ public class HyperLogLog<E> {
      * @return
      */
     public double getAccuracy(){
-        return (1.04 / Math.sqrt(arraySize));
+        return (1.04 / Math.sqrt(noOfBuckets));
     }
 
 
@@ -59,9 +59,20 @@ public class HyperLogLog<E> {
      */
     public void addItem(E item){
         int hash = getHashValue(item);
-        int bucketId = hash >>> (Integer.SIZE - bucketSize);
+        System.out.println("hash : " + Integer.toBinaryString(hash)); //TODO : added for testing
 
+//      Shift all the bits to right till only the bucket ID is left
+        int bucketId = hash >>> (Integer.SIZE - lengthOfBucketId);
+        System.out.println("bucketID : " + Integer.toBinaryString(bucketId)); //TODO : added for testing
 
+//      Shift all the bits to left till the bucket id is removed
+        int remainingValue = hash << lengthOfBucketId;
+        System.out.println("Remaining value : " + Integer.toBinaryString(remainingValue)); //TODO : added for testing
+
+        int noOfLeadingZeros = Integer.numberOfLeadingZeros(remainingValue);
+        System.out.println("no of leading zeros : " + noOfLeadingZeros); //TODO : added for testing
+
+        updateBucket(bucketId, noOfLeadingZeros);
     }
 
     /**
