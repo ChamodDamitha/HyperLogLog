@@ -1,3 +1,5 @@
+import com.sangupta.murmur.Murmur1;
+
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -9,7 +11,7 @@ public class HyperLogLog<E> {
     private double accuracy;
     private int noOfBuckets;
     private int lengthOfBucketId;
-    private int[] countArray;
+    private long[] countArray;
 
     private final double ESTIMATION_FACTOR = 0.7;
 
@@ -31,9 +33,9 @@ public class HyperLogLog<E> {
 //        System.out.println("bucket size : " + lengthOfBucketId); //TODO : added for testing
 
         noOfBuckets = (1 << lengthOfBucketId);
-//        System.out.println("array size II : " + noOfBuckets); //TODO : added for testing
+        System.out.println("array size II : " + noOfBuckets); //TODO : added for testing
 
-        countArray = new int[noOfBuckets];
+        countArray = new long[noOfBuckets];
 
 //        setting MD5 digest function to generate hashes
         try {
@@ -58,12 +60,12 @@ public class HyperLogLog<E> {
      * Check for the upper and lower bounds to modify the estimation
      * @return
      */
-    public int getCardinality(){
+    public long getCardinality(){
         int harmonicCountSum = 0;
         int harmonicCountMean;
-        int count;
         int noOfZeroBuckets = 0;
         int estimatedCardinality;
+        long count;
 
 //      calculate harmonic mean of the bucket values
         for(int i = 0; i < noOfBuckets; i++){
@@ -100,18 +102,18 @@ public class HyperLogLog<E> {
      * @param item
      */
     public void addItem(E item){
-        int hash = getHashValue(item);
+        long hash = getHashValue(item);
 //        System.out.println("hash : " + Integer.toBinaryString(hash)); //TODO : added for testing
 
 //      Shift all the bits to right till only the bucket ID is left
-        int bucketId = hash >>> (Integer.SIZE - lengthOfBucketId);
+        int bucketId = (int)(hash >>> (Integer.SIZE - lengthOfBucketId));
 //        System.out.println("bucketID : " + Integer.toBinaryString(bucketId)); //TODO : added for testing
 
 //      Shift all the bits to left till the bucket id is removed
-        int remainingValue = hash << lengthOfBucketId;
+        long remainingValue = hash << lengthOfBucketId;
 //        System.out.println("Remaining value : " + Integer.toBinaryString(remainingValue)); //TODO : added for testing
 
-        int noOfLeadingZeros = Integer.numberOfLeadingZeros(remainingValue);
+        int noOfLeadingZeros = Long.numberOfLeadingZeros(remainingValue);
 //        System.out.println("no of leading zeros : " + noOfLeadingZeros); //TODO : added for testing
 
         updateBucket(bucketId, noOfLeadingZeros);
@@ -122,10 +124,55 @@ public class HyperLogLog<E> {
      * @param value to be hashed
      * @return
      */
-    public int getHashValue(E value){
+    public long getHashValue(E value){
         byte[] bytes = messageDigest.digest(getBytes(value));
-        return (bytes[0] & 0xff) + ((bytes[1] & 0xff) << 8) + ((bytes[2] & 0xff) << 16) + ((bytes[3] & 0xff) << 24);
+        return hash(bytes, 10, 123);
     }
+
+
+    /**
+     * The hash function with the algorithm
+     * @param data
+     * @param length
+     * @param seed
+     * @return
+     */
+    public long hash(byte[] data, int length, long seed) {
+        long m = 3332679571L;
+        long h = seed ^ (long)length * 3332679571L;
+        int length4 = length >> 2;
+
+        int offset;
+        for(offset = 0; offset < length4; ++offset) {
+            int i4 = offset << 2;
+            long k = (long)(data[i4] & 255);
+            k |= (long)((data[i4 + 1] & 255) << 8);
+            k |= (long)((data[i4 + 2] & 255) << 16);
+            k |= (long)((data[i4 + 3] & 255) << 24);
+            h = h + k & 4294967295L;
+            h = h * 3332679571L & 4294967295L;
+            h ^= h >> 16 & 4294967295L;
+        }
+
+        offset = length4 << 2;
+        switch(length & 3) {
+            case 3:
+                h += (long)(data[offset + 2] << 16) & 4294967295L;
+            case 2:
+                h += (long)(data[offset + 1] << 8) & 4294967295L;
+            case 1:
+                h += (long)data[offset] & 4294967295L;
+                h = h * 3332679571L & 4294967295L;
+                h ^= h >> 16 & 4294967295L;
+            default:
+                h = h * 3332679571L & 4294967295L;
+                h ^= h >> 10 & 4294967295L;
+                h = h * 3332679571L & 4294967295L;
+                h ^= h >> 17 & 4294967295L;
+                return h;
+        }
+    }
+
 
     /**
      * Update the zero count value in the relevant bucket if the given value is larger than the existing value
@@ -133,7 +180,7 @@ public class HyperLogLog<E> {
      * @param leadingZeroCount is the new zero count
      */
     private void updateBucket(int index, int leadingZeroCount){
-        int currentZeroCount = countArray[index];
+        long currentZeroCount = countArray[index];
         if(currentZeroCount < leadingZeroCount){
             countArray[index] = leadingZeroCount;
         }
