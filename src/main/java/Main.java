@@ -4,15 +4,9 @@
 public class Main {
     public static void main(String[] args) {
 
-        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.1);
+        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.05);
 
-//        byte[] bytes = integerHyperLogLog.getHashValue(12);
-//
-//        int i = bytes[0] & 0xff;
-
-//        System.out.print("Accuracy :" +  integerHyperLogLog.getAccuracy());
-
-        for(int i = 0; i < 5638; i++){
+        for(int i = 0; i < 20; i++){
             integerHyperLogLog.addItem(i);
         }
 
