@@ -1,5 +1,3 @@
-import com.sangupta.murmur.Murmur1;
-
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
