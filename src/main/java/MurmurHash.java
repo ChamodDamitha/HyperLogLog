@@ -17,7 +17,7 @@
 */
 
 /**
- * Calculate hash values
+ * Calculate hash values for any type of object
  */
 public final class MurmurHash {
     private MurmurHash() {}

@@ -1,15 +1,17 @@
 //import com.clearspring.analytics.stream.cardinality.*;
 //import com.clearspring.analytics.stream.cardinality.HyperLogLog;
 
+import java.lang.reflect.Array;
+
 /**
  * Created by chamod on 7/27/17.
  */
 public class Main {
     public static void main(String[] args) {
 
-        final int NO_OF_UNIQUE_NUMBERS = 200000;
+        final int NO_OF_UNIQUE_NUMBERS = 150000;
 
-        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.09);
+        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.05);
 
         for(int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++){
             integerHyperLogLog.addItem(i);
@@ -27,11 +29,9 @@ public class Main {
 
         System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
         System.out.println("accuracy : " + integerHyperLogLog.getAccuracy());
+        printLongArray(integerHyperLogLog.getConfidenceInterval());
 
-        long cardinality  = integerHyperLogLog.getCardinality();
-        double accuracy = integerHyperLogLog.getAccuracy();
-        System.out.println(String.format("[%s, %s]", cardinality - cardinality * accuracy,
-                cardinality + cardinality * accuracy));
+
 
 
 
@@ -52,5 +52,14 @@ public class Main {
 //        System.out.println("cardinality : " + hyperLogLog.cardinality());
 ////        System.out.println("accuracy : " + integerHyperLogLog.getAccuracy());
 //        System.out.println(String.format("[%s, %s]", cardinality - cardinality * accuracy, cardinality + cardinality * accuracy));
+    }
+
+
+    static void printLongArray(long[] arr){
+        System.out.print("{");
+        for(long l : arr){
+            System.out.print(l + ",");
+        }
+        System.out.println("}");
     }
 }

@@ -107,11 +107,21 @@ public class HyperLogLog<E> {
         } else {
             cardinality = estimatedCardinality;
         }
-
-//        String confidenceInterval = String.format("confidence interval of cardinality : [%s, %s]",
-//        cardinality - cardinality * getAccuracy(), cardinality + cardinality * getAccuracy());
-
         return cardinality;
+    }
+
+    /**
+     * Calculate the confidence interval for the cardinality
+     * @return an long array which contain the lower bound and the upper bound of the confidence interval
+     *         e.g. - {313, 350} for the cardinality of 320
+     */
+    public long[] getConfidenceInterval(){
+        long cardinality = getCardinality();
+        double accuracy = getAccuracy();
+        long[] confidenceInterval = new long[2];
+        confidenceInterval[0] = (long) Math.floor(cardinality - (cardinality * accuracy));
+        confidenceInterval[1] = (long) Math.ceil(cardinality + (cardinality * accuracy));
+        return confidenceInterval;
     }
 
     /**
@@ -147,7 +157,6 @@ public class HyperLogLog<E> {
         return false;
     }
 
-
     /**
      * Compute an integer hash value for a given value
      * @param value to be hashed
@@ -158,22 +167,11 @@ public class HyperLogLog<E> {
     }
 
     /**
-     * return a byte array for input data of type E
-     * @param data
-     * @return a byte array
+     * Calculate the {@code estimationFactor} based on the length of bucket id and number of buckets
+     * @param lengthOfBucketId is the length of bucket id
+     * @param noOfBuckets is the number of buckets
+     * @return {@code estimationFactor}
      */
-    private byte[] getBytes(E data) {
-        return data.toString().getBytes();
-    }
-
-    /**
-     * Print the contents of the count array
-     */
-//    private void printArray() {
-//        for (long x : countArray) {
-//        }
-//    }
-
     private double getEstimationFactor(int lengthOfBucketId, int noOfBuckets) {
         switch (lengthOfBucketId) {
             case 4:
