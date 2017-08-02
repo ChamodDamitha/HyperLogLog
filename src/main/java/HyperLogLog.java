@@ -16,7 +16,6 @@
 * under the License.
 */
 
-import org.apache.log4j.Logger;
 
 
 /**
@@ -25,7 +24,6 @@ import org.apache.log4j.Logger;
  */
 public class HyperLogLog<E> {
 
-    private static final Logger LOG = Logger.getLogger(HyperLogLog.class);
 
     private double accuracy;
     private int noOfBuckets;
@@ -49,7 +47,9 @@ public class HyperLogLog<E> {
         lengthOfBucketId = (int) Math.ceil(Math.log(noOfBuckets) / Math.log(2));
 
         noOfBuckets = (1 << lengthOfBucketId);
-
+        if (noOfBuckets <= 0) {
+            throw new IllegalArgumentException("accuracy value must be increased above " + accuracy);
+        }
         countArray = new int[noOfBuckets];
 
         estimationFactor = getEstimationFactor(lengthOfBucketId, noOfBuckets);

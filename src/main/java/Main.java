@@ -9,9 +9,9 @@ import java.lang.reflect.Array;
 public class Main {
     public static void main(String[] args) {
 
-        final int NO_OF_UNIQUE_NUMBERS = 150000;
+        final int NO_OF_UNIQUE_NUMBERS = 1000000;
 
-        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.05);
+        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.0001);
 
         for(int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++){
             integerHyperLogLog.addItem(i);
