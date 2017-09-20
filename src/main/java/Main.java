@@ -9,12 +9,21 @@ import java.lang.reflect.Array;
 public class Main {
     public static void main(String[] args) {
 
-        final int NO_OF_UNIQUE_NUMBERS = 1000000;
+        final int NO_OF_UNIQUE_NUMBERS = 100;
 
-        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.0001);
+        HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.1);
 
-        for(int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++){
+
+        System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
+
+        for (int i = 0; i < 10; i++) {
             integerHyperLogLog.addItem(i);
+            System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
+        }
+        for (int i = 0; i < 10; i++) {
+            integerHyperLogLog.removeItem(i);
+            System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
+
         }
 
 //        for(int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++){
@@ -27,12 +36,9 @@ public class Main {
 //            integerHyperLogLog.addItem(i);
 //        }
 
-        System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
-        System.out.println("accuracy : " + integerHyperLogLog.getAccuracy());
-        printLongArray(integerHyperLogLog.getConfidenceInterval());
-
-
-
+//        System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
+//        System.out.println("accuracy : " + integerHyperLogLog.getAccuracy());
+//        printLongArray(integerHyperLogLog.getConfidenceInterval());
 
 
         //............................library................................
@@ -55,9 +61,9 @@ public class Main {
     }
 
 
-    static void printLongArray(long[] arr){
+    static void printLongArray(long[] arr) {
         System.out.print("{");
-        for(long l : arr){
+        for (long l : arr) {
             System.out.print(l + ",");
         }
         System.out.println("}");

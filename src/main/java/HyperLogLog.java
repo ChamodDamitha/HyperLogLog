@@ -17,56 +17,73 @@
 */
 
 
+import com.clearspring.analytics.hash.MurmurHash;
 
 /**
  * A probabilistic data structure to calculate cardinality of a set
+ *
  * @param <E> is the type of objects in the set
  */
 public class HyperLogLog<E> {
 
-
-    private double accuracy;
+    private final double standardError = 1.04;
     private int noOfBuckets;
     private int lengthOfBucketId;
     private int[] countArray;
+    private CountQueue[] pastCountsArray;
 
-    private final double errorFactor = 1.04;
     private double estimationFactor;
+
+    private double specifiedAccuracy;
 
     /**
      * Create a new HyperLogLog by specifying the accuracy
      * Based on the accuracy the array size is calculated
+     *
      * @param accuracy is a number in the range (0, 1)
      */
     public HyperLogLog(double accuracy) {
-        this.accuracy = accuracy;
 
-//      accuracy = errorFactor / sqrt(noOfBuckets) = > noOfBuckets = (errorFactor / accuracy) ^ 2
-        noOfBuckets = (int) Math.ceil(Math.pow(errorFactor / accuracy, 2));
+        this.specifiedAccuracy = accuracy;
+
+//      95% of time answer lie within [answer +- 2 * accuracy * answer]
+        accuracy = specifiedAccuracy / 2;
+
+//      accuracy = standardError / sqrt(noOfBuckets) = > noOfBuckets = (standardError / accuracy) ^ 2
+        noOfBuckets = (int) Math.ceil(Math.pow(standardError / accuracy, 2));
 
         lengthOfBucketId = (int) Math.ceil(Math.log(noOfBuckets) / Math.log(2));
 
         noOfBuckets = (1 << lengthOfBucketId);
-        if (noOfBuckets <= 0) {
-            throw new IllegalArgumentException("accuracy value must be increased above " + accuracy);
+
+        if (lengthOfBucketId < 4) {
+            throw new IllegalArgumentException("a higher error margin of " + accuracy + " cannot be achieved");
         }
+
         countArray = new int[noOfBuckets];
+        pastCountsArray = new CountQueue[noOfBuckets];
+        for (int i = 0; i < noOfBuckets; i++) {
+            pastCountsArray[i] = new CountQueue();
+        }
 
         estimationFactor = getEstimationFactor(lengthOfBucketId, noOfBuckets);
     }
 
     /**
      * Compute the accuracy using the count array size
+     * accuracy = standardError / sqrt(noOfBuckets)
+     *
      * @return the accuracy value
      */
     public double getAccuracy() {
-        return (errorFactor / Math.sqrt(noOfBuckets));
+        return (standardError / Math.sqrt(noOfBuckets));
     }
 
     /**
      * Calculate the cardinality(number of unique items in a set)
      * by calculating the harmonic mean of the counts in the buckets.
      * Check for the upper and lower bounds to modify the estimation.
+     *
      * @return the cardinality value
      */
     public long getCardinality() {
@@ -99,7 +116,6 @@ public class HyperLogLog<E> {
 //      then instead return −32⋅log(V/32), where V is the number of buckets with max-leading-zero count = 0.
 //      threshold of 2.5x comes from the recommended load factor for Linear Counting
         if ((estimatedCardinality < 2.5 * noOfBuckets) && noOfZeroBuckets > 0) {
-//            cardinality =  (long)(noOfBuckets * Math.log((double) noOfBuckets / noOfZeroBuckets));
             cardinality = (int) (-noOfBuckets * Math.log((double) noOfZeroBuckets / noOfBuckets));
         } else if (estimatedCardinality > (pow2to32 / 30.0)) {
             //       if E > 2 ^ (32) / 30 : return −2 ^ (32) * log(1 − E / 2 ^ (32))
@@ -112,20 +128,21 @@ public class HyperLogLog<E> {
 
     /**
      * Calculate the confidence interval for the cardinality
+     *
      * @return an long array which contain the lower bound and the upper bound of the confidence interval
-     *         e.g. - {313, 350} for the cardinality of 320
+     * e.g. - {313, 350} for the cardinality of 320
      */
-    public long[] getConfidenceInterval(){
+    public long[] getConfidenceInterval() {
         long cardinality = getCardinality();
-        double accuracy = getAccuracy();
         long[] confidenceInterval = new long[2];
-        confidenceInterval[0] = (long) Math.floor(cardinality - (cardinality * accuracy));
-        confidenceInterval[1] = (long) Math.ceil(cardinality + (cardinality * accuracy));
+        confidenceInterval[0] = (long) Math.floor(cardinality - (cardinality * specifiedAccuracy));
+        confidenceInterval[1] = (long) Math.ceil(cardinality + (cardinality * specifiedAccuracy));
         return confidenceInterval;
     }
 
     /**
      * Adds a new item to the array by hashing and setting the count of relevant bucckets
+     *
      * @param item
      */
     public void addItem(E item) {
@@ -135,16 +152,35 @@ public class HyperLogLog<E> {
         int bucketId = hash >>> (Integer.SIZE - lengthOfBucketId);
 
 //      Shift all the bits to left till the bucket id is removed
-        int remainingValue = hash << lengthOfBucketId | (1 << (lengthOfBucketId - 1));
+        int remainingValue = hash << lengthOfBucketId;
 
         int noOfLeadingZeros = Integer.numberOfLeadingZeros(remainingValue) + 1;
 
         updateBucket(bucketId, noOfLeadingZeros);
     }
 
+
+    public void removeItem(E item){
+        int hash = getHashValue(item);
+
+//      Shift all the bits to right till only the bucket ID is left
+        int bucketId = hash >>> (Integer.SIZE - lengthOfBucketId);
+
+//      Shift all the bits to left till the bucket id is removed
+        int remainingValue = hash << lengthOfBucketId;
+
+        int noOfLeadingZeros = Integer.numberOfLeadingZeros(remainingValue) + 1;
+
+        int newLeadingZeroCount = pastCountsArray[bucketId].remove(noOfLeadingZeros);
+        if(newLeadingZeroCount >= 0) {
+            countArray[bucketId] = newLeadingZeroCount;
+        }
+    }
+
     /**
      * Update the zero count value in the relevant bucket if the given value is larger than the existing value
-     * @param index is the bucket ID of the relevant bucket
+     *
+     * @param index            is the bucket ID of the relevant bucket
      * @param leadingZeroCount is the new zero count
      * @return {@code true} if the bucket is updated, {@code false} if the bucket is not updated
      */
@@ -152,13 +188,16 @@ public class HyperLogLog<E> {
         long currentZeroCount = countArray[index];
         if (currentZeroCount < leadingZeroCount) {
             countArray[index] = leadingZeroCount;
+            pastCountsArray[index].add(leadingZeroCount);
             return true;
         }
         return false;
     }
 
+
     /**
      * Compute an integer hash value for a given value
+     *
      * @param value to be hashed
      * @return integer hash value
      */
@@ -168,8 +207,9 @@ public class HyperLogLog<E> {
 
     /**
      * Calculate the {@code estimationFactor} based on the length of bucket id and number of buckets
+     *
      * @param lengthOfBucketId is the length of bucket id
-     * @param noOfBuckets is the number of buckets
+     * @param noOfBuckets      is the number of buckets
      * @return {@code estimationFactor}
      */
     private double getEstimationFactor(int lengthOfBucketId, int noOfBuckets) {
