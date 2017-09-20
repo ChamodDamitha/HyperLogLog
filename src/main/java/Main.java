@@ -2,6 +2,10 @@
 //import com.clearspring.analytics.stream.cardinality.HyperLogLog;
 
 import java.lang.reflect.Array;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Queue;
+import java.util.Random;
 
 /**
  * Created by chamod on 7/27/17.
@@ -13,17 +17,24 @@ public class Main {
 
         HyperLogLog<Integer> integerHyperLogLog = new HyperLogLog<Integer>(0.1);
 
+        Random random1 = new Random(123);
+        Random random2 = new Random(123);
+
+        long[] cardinalities = new long[NO_OF_UNIQUE_NUMBERS];
 
         System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
 
-        for (int i = 0; i < 10; i++) {
-            integerHyperLogLog.addItem(i);
+        for (int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++) {
+            integerHyperLogLog.addItem(random1.nextInt());
             System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
+//            cardinalities[i] = integerHyperLogLog.getCardinality();
         }
-        for (int i = 0; i < 10; i++) {
-            integerHyperLogLog.removeItem(i);
-            System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
 
+        System.out.println("-----------------------------------------------------------");
+        for (int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++) {
+            integerHyperLogLog.removeItem(random2.nextInt());
+            System.out.println("cardinality : " + integerHyperLogLog.getCardinality());
+//            if(integerHyperLogLog.getCardinality()!=cardinalities)
         }
 
 //        for(int i = 0; i < NO_OF_UNIQUE_NUMBERS; i++){
