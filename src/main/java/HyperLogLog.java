@@ -17,8 +17,6 @@
 */
 
 
-import com.clearspring.analytics.hash.MurmurHash;
-
 /**
  * A probabilistic data structure to calculate cardinality of a set
  *
@@ -27,6 +25,7 @@ import com.clearspring.analytics.hash.MurmurHash;
 public class HyperLogLog<E> {
 
     private final double standardError = 1.04;
+    private final double pow2to32 = Math.pow(2, 32);
     private int noOfBuckets;
     private int lengthOfBucketId;
     private int[] countArray;
@@ -35,6 +34,11 @@ public class HyperLogLog<E> {
     private double estimationFactor;
 
     private double specifiedAccuracy;
+
+
+    private double harmonicCountSum;
+    private int noOfZeroBuckets;
+
 
     /**
      * Create a new HyperLogLog by specifying the accuracy
@@ -67,6 +71,9 @@ public class HyperLogLog<E> {
         }
 
         estimationFactor = getEstimationFactor(lengthOfBucketId, noOfBuckets);
+
+        harmonicCountSum = noOfBuckets;
+        noOfZeroBuckets = noOfBuckets;
     }
 
     /**
@@ -88,29 +95,26 @@ public class HyperLogLog<E> {
      */
     public long getCardinality() {
 
-        double harmonicCountSum = 0;
         double harmonicCountMean;
-        int noOfZeroBuckets = 0;
         int estimatedCardinality;
-        long count;
+//        long count;
         long cardinality;
 
 //      calculate harmonic mean of the bucket values
-        for (int i = 0; i < noOfBuckets; i++) {
-            count = countArray[i];
-            harmonicCountSum += (1.0 / (1 << count));
-
-            if (count == 0) {
-                noOfZeroBuckets++;
-            }
-        }
+//        for (int i = 0; i < noOfBuckets; i++) {
+//            count = countArray[i];
+//            harmonicCountSum += (1.0 / (1 << count));
+//
+//            if (count == 0) {
+//                noOfZeroBuckets++;
+//            }
+//        }
 
         harmonicCountMean = noOfBuckets / harmonicCountSum;
 
 //      calculate the estimated cardinality
         estimatedCardinality = (int) Math.ceil(noOfBuckets * estimationFactor * harmonicCountMean);
 
-        final double pow2to32 = Math.pow(2, 32);
 
 //      if the estimate E is less than 2.5 * 32 and there are buckets with max-leading-zero count of zero,
 //      then instead return −32⋅log(V/32), where V is the number of buckets with max-leading-zero count = 0.
@@ -159,8 +163,12 @@ public class HyperLogLog<E> {
         updateBucket(bucketId, noOfLeadingZeros);
     }
 
-
-    public void removeItem(E item){
+    /**
+     * Removes the given item from the array and restore the cardinality value by using the previous count
+     *
+     * @param item
+     */
+    public void removeItem(E item) {
         int hash = getHashValue(item);
 
 //      Shift all the bits to right till only the bucket ID is left
@@ -172,7 +180,18 @@ public class HyperLogLog<E> {
         int noOfLeadingZeros = Integer.numberOfLeadingZeros(remainingValue) + 1;
 
         int newLeadingZeroCount = pastCountsArray[bucketId].remove(noOfLeadingZeros);
-        if(newLeadingZeroCount >= 0) {
+        int oldLeadingZeroCount = countArray[bucketId];
+
+        if (newLeadingZeroCount >= 0) {
+
+            harmonicCountSum = harmonicCountSum - (1.0 / (1 << oldLeadingZeroCount)) + (1.0 / (1 << newLeadingZeroCount));
+            if (oldLeadingZeroCount == 0) {
+                noOfZeroBuckets--;
+            }
+            if (newLeadingZeroCount == 0) {
+                noOfZeroBuckets++;
+            }
+
             countArray[bucketId] = newLeadingZeroCount;
         }
     }
@@ -186,9 +205,19 @@ public class HyperLogLog<E> {
      */
     private boolean updateBucket(int index, int leadingZeroCount) {
         long currentZeroCount = countArray[index];
+        pastCountsArray[index].add(leadingZeroCount);
         if (currentZeroCount < leadingZeroCount) {
+
+            harmonicCountSum = harmonicCountSum - (1.0 / (1 << currentZeroCount)) + (1.0 / (1 << leadingZeroCount));
+
+            if (currentZeroCount == 0) {
+                noOfZeroBuckets--;
+            }
+            if (leadingZeroCount == 0) {
+                noOfZeroBuckets++;
+            }
+
             countArray[index] = leadingZeroCount;
-            pastCountsArray[index].add(leadingZeroCount);
             return true;
         }
         return false;
